@@ -10,7 +10,7 @@ RUN npm ci --omit=dev
 FROM node:18-slim AS builder
 WORKDIR /app
 COPY . .
-RUN npm ci && node ./node_modules/typescript/bin/tsc
+RUN npm ci && npm run build
 
 # Runtime image
 FROM node:18-slim AS runtime
