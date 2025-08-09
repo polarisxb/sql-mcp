@@ -21,6 +21,28 @@ jobs:
         run: npm run build
       - name: Test
         run: node ./node_modules/vitest/vitest.mjs run
+      - name: Preflight - verify npm auth
+        shell: bash
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "NPM_TOKEN is missing. Create an npm Access Token (Automation) and add it as repository secret NPM_TOKEN.";
+            exit 1;
+          fi
+          echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > ~/.npmrc
+          npm whoami
+      - name: Preflight - version not already published
+        shell: bash
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          PKG=$(node -p "require('./package.json').name")
+          VER=$(node -p "require('./package.json').version")
+          if npm view "$PKG@$VER" version > /dev/null 2>&1; then
+            echo "Version $PKG@$VER already exists on npm. Bump version in package.json and retag.";
+            exit 1;
+          fi
       - name: Publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
