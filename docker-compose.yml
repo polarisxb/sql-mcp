@@ -1,0 +1,26 @@
+version: '3.8'
+services:
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: mydb
+    ports:
+      - "3306:3306"
+
+  sql-mcp:
+    build: .
+    depends_on:
+      - mysql
+    environment:
+      SQL_MCP_DB_TYPE: mysql
+      SQL_MCP_DB_HOST: mysql
+      SQL_MCP_DB_PORT: 3306
+      SQL_MCP_DB_USER: root
+      SQL_MCP_DB_PASSWORD: root
+      SQL_MCP_DB_NAME: mydb
+      SQL_MCP_MCP_TRANSPORT: http
+      SQL_MCP_MCP_HTTP_PORT: 3000
+    ports:
+      - "3000:3000"
+    command: ["--transport", "http", "--httpPort", "3000"] 

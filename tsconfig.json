@@ -1,0 +1,26 @@
+{
+    "compilerOptions": {
+      "target": "es2022",                // 编译目标 JavaScript 版本
+      "module": "NodeNext",              // 模块系统
+      "moduleResolution": "NodeNext",    // 模块解析策略
+      "lib": ["es2022"],                 // 包含的库文件
+      "outDir": "./dist",                // 编译输出目录
+      "rootDir": "./src",                // 源代码根目录
+      "strict": true,                    // 启用所有严格类型检查选项
+      "esModuleInterop": true,           // 允许从 CommonJS 模块导入 ES 模块
+      "skipLibCheck": true,              // 跳过声明文件类型检查
+      "forceConsistentCasingInFileNames": true, // 强制文件名大小写一致
+      "experimentalDecorators": true,    // 启用实验性装饰器 (DI系统会用到)
+      "emitDecoratorMetadata": true,     // 为装饰器发出元数据 (DI系统会用到)
+      "baseUrl": "./src",                // 解析非相对模块名的基准目录
+      "paths": {                         // 模块路径映射，方便导入
+        "@core/*": ["core/*"],
+        "@connectors/*": ["connectors/*"],
+        "@services/*": ["services/*"],
+        "@mcp/*": ["mcp/*"],
+        "@utils/*": ["utils/*"]
+      }
+    },
+    "include": ["src/**/*.ts", "src/**/*.d.ts"],          // 包含的源文件
+    "exclude": ["node_modules", "dist", "test"]  // 排除的文件
+}
