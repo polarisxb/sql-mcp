@@ -7,7 +7,7 @@ We aim to support the latest minor release line. Example:
 ## Reporting a Vulnerability
 Please do not open public issues for security problems.
 
-Email: security@invalid.example (replace with project email) or use GitHub Security Advisory to report privately.
+Email: 3230431674@qq.com (security contact) or use GitHub Security Advisory to report privately.
 
 Provide:
 - Affected version and environment

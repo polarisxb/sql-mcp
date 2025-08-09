@@ -29,12 +29,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/your-org-or-user/sql-mcp.git"
+    "url": "git+https://github.com/polarisxb/sql-mcp.git"
   },
   "bugs": {
-    "url": "https://github.com/your-org-or-user/sql-mcp/issues"
+    "url": "https://github.com/polarisxb/sql-mcp/issues"
   },
-  "homepage": "https://github.com/your-org-or-user/sql-mcp#readme",
+  "homepage": "https://github.com/polarisxb/sql-mcp#readme",
   "engines": {
     "node": ">=18"
   },

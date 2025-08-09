@@ -82,7 +82,7 @@ node dist/cli.js --log-dest file --log-file ./logs/sql-mcp.log
 - 需要在仓库设置 `NPM_TOKEN`（Actions secrets）。
 
 ### Docker 镜像（GHCR）
-- Push 到 `main` 或推 tag，会由 `Docker (GHCR)` 工作流构建并推送镜像到 `ghcr.io/<owner>/<repo>`。
+- Push 到 `main` 或推 tag，会由 `Docker (GHCR)` 工作流构建并推送镜像到 `ghcr.io/polarisxb/sql-mcp`。
 - 运行示例：
 ```bash
 docker run --rm -p 3000:3000 \
@@ -92,7 +92,7 @@ docker run --rm -p 3000:3000 \
   -e SQL_MCP_DB_USER=user \
   -e SQL_MCP_DB_PASSWORD=pass \
   -e SQL_MCP_DB_NAME=mydb \
-  ghcr.io/<owner>/<repo>:<tag> --transport http --httpPort 3000
+  ghcr.io/polarisxb/sql-mcp:<tag> --transport http --httpPort 3000
 ```
 
 ### Compose
