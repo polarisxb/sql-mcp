@@ -1,6 +1,6 @@
 {
   "name": "sql-mcp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MySQL-backed Model Context Protocol (MCP) server for database metadata, sampling and read-only queries.",
   "type": "module",
   "main": "dist/index.js",
