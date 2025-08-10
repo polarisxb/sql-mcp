@@ -12,7 +12,8 @@ export const DEFAULT_CONFIG = {
     user: 'root',
     password: '',
     database: '',
-    connectionTimeout: 10000
+    connectionTimeout: 10000,
+    pool: { connectionLimit: 10, waitForConnections: true, queueLimit: 0 }
   },
   cache: {
     enabled: true,
@@ -24,17 +25,27 @@ export const DEFAULT_CONFIG = {
   security: {
     readOnly: true,
     sensitiveFields: ['password', 'credit_card', 'ssn', 'token', 'secret'],
-    maxQueryLength: 5000
+    maxQueryLength: 5000,
+    sampleMaxRows: 100,
+    queryTimeoutMs: 10000,
+    rateLimit: { enabled: false, windowMs: 60000, max: 120, perIpMax: 60 }
   },
   logging: {
     level: 'info' as const,
     destination: 'console' as const,
-    filePath: './logs/sql-mcp.log'
+    filePath: './logs/sql-mcp.log',
+    slowQueryMs: 1000,
+    httpRequests: true
   },
   mcp: {
     transport: 'stdio' as const,
     httpPort: 3000,
     serverName: 'sql-mcp',
-    serverVersion: '1.0.0'
+    serverVersion: '1.0.0',
+    httpApiKey: undefined as any,
+    httpApiKeys: [],
+    enableDnsRebindingProtection: false,
+    allowedHosts: [],
+    corsAllowedOrigins: []
   }
 }; 

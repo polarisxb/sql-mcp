@@ -1,7 +1,7 @@
 import 'reflect-metadata'
 import { loadConfig } from '../core/config/index.js'
 import { container } from '../core/di/index.js'
-import { DATABASE_CONNECTOR, METADATA_SERVICE, SAMPLER_SERVICE, SECURITY_SERVICE, CACHE_SERVICE } from '../core/di/tokens.js'
+import { DATABASE_CONNECTOR, METADATA_SERVICE, SAMPLER_SERVICE, SECURITY_SERVICE, CACHE_SERVICE, APP_CONFIG } from '../core/di/tokens.js'
 import { createCacheFromConfig } from '../core/cache/index.js'
 import { MySQLConnector } from '../connectors/mysql/connector.js'
 import { McpServerFactory } from './server.js'
@@ -13,6 +13,9 @@ import { startHttpServer } from './transports/http.js'
 
 async function bootstrap() {
   const config = loadConfig()
+
+  // 注册全局配置
+  container.registerInstance(APP_CONFIG, config)
 
   // 注册缓存
   const cache = createCacheFromConfig(config)

@@ -13,7 +13,12 @@ export const DatabaseConfigSchema = z.object({
   password: z.string(),
   database: z.string(),
   ssl: z.boolean().optional(),
-  connectionTimeout: z.number().int().positive().optional().default(10000)
+  connectionTimeout: z.number().int().positive().optional().default(10000),
+  pool: z.object({
+    connectionLimit: z.number().int().positive().default(10),
+    waitForConnections: z.boolean().default(true),
+    queueLimit: z.number().int().nonnegative().default(0)
+  }).default({})
 });
 
 /**
@@ -41,7 +46,15 @@ export const CacheConfigSchema = z.object({
 export const SecurityConfigSchema = z.object({
   readOnly: z.boolean().default(true),
   sensitiveFields: z.array(z.string()).default(['password', 'credit_card', 'ssn', 'token', 'secret']),
-  maxQueryLength: z.number().int().positive().default(5000)
+  maxQueryLength: z.number().int().positive().default(5000),
+  sampleMaxRows: z.number().int().positive().default(100),
+  queryTimeoutMs: z.number().int().positive().default(10000),
+  rateLimit: z.object({
+    enabled: z.boolean().default(false),
+    windowMs: z.number().int().positive().default(60000),
+    max: z.number().int().positive().default(120),
+    perIpMax: z.number().int().positive().default(60)
+  }).default({})
 });
 
 /**
@@ -51,7 +64,9 @@ export const SecurityConfigSchema = z.object({
 export const LoggingConfigSchema = z.object({
   level: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
   destination: z.enum(['console', 'file']).default('console'),
-  filePath: z.string().optional().default('./logs/sql-mcp.log')
+  filePath: z.string().optional().default('./logs/sql-mcp.log'),
+  slowQueryMs: z.number().int().positive().default(1000),
+  httpRequests: z.boolean().default(true)
 }).refine(data => {
   return !(data.destination === 'file' && !data.filePath);
 }, {
@@ -67,7 +82,12 @@ export const McpConfigSchema = z.object({
   transport: z.enum(['stdio', 'http']).default('stdio'),
   httpPort: z.number().int().positive().nullable().optional().default(3000),
   serverName: z.string().default('sql-mcp'),
-  serverVersion: z.string().default('1.0.0')
+  serverVersion: z.string().default('1.0.0'),
+  httpApiKey: z.string().optional(),
+  httpApiKeys: z.array(z.string()).default([]),
+  enableDnsRebindingProtection: z.boolean().default(false),
+  allowedHosts: z.array(z.string()).default([]),
+  corsAllowedOrigins: z.array(z.string()).default([])
 }).refine(data => {
   return !(data.transport === 'http' && (!data.httpPort || data.httpPort === null));
 }, {

@@ -27,6 +27,11 @@ export interface ConnectionConfig {
   readonly database: string;
   readonly ssl?: boolean;
   readonly connectionTimeout?: number;
+  readonly pool?: {
+    readonly connectionLimit?: number;
+    readonly waitForConnections?: boolean;
+    readonly queueLimit?: number;
+  };
 }
 
 /**

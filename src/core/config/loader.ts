@@ -23,17 +23,32 @@ export interface AppConfig {
     readOnly: boolean;
     sensitiveFields: string[];
     maxQueryLength: number;
+    sampleMaxRows: number;
+    queryTimeoutMs: number;
+    rateLimit: {
+      enabled: boolean;
+      windowMs: number;
+      max: number;
+      perIpMax: number;
+    };
   };
   logging: {
     level: 'debug' | 'info' | 'warn' | 'error';
     destination: 'console' | 'file';
     filePath?: string;
+    slowQueryMs?: number;
+    httpRequests?: boolean;
   };
   mcp: {
     transport: 'stdio' | 'http';
     httpPort?: number;
     serverName: string;
     serverVersion: string;
+    httpApiKey?: string;
+    httpApiKeys?: string[];
+    enableDnsRebindingProtection?: boolean;
+    allowedHosts?: string[];
+    corsAllowedOrigins?: string[];
   };
 }
 
@@ -146,6 +161,9 @@ export class ConfigLoader {
       [`${ENV_PREFIX}DB_NAME`]: 'database.database',
       [`${ENV_PREFIX}DB_SSL`]: 'database.ssl',
       [`${ENV_PREFIX}DB_TIMEOUT`]: 'database.connectionTimeout',
+      [`${ENV_PREFIX}DB_POOL_CONNECTION_LIMIT`]: 'database.pool.connectionLimit',
+      [`${ENV_PREFIX}DB_POOL_WAIT_FOR_CONNECTIONS`]: 'database.pool.waitForConnections',
+      [`${ENV_PREFIX}DB_POOL_QUEUE_LIMIT`]: 'database.pool.queueLimit',
       
       // 缓存配置
       [`${ENV_PREFIX}CACHE_ENABLED`]: 'cache.enabled',
@@ -158,17 +176,30 @@ export class ConfigLoader {
       [`${ENV_PREFIX}SECURITY_READ_ONLY`]: 'security.readOnly',
       [`${ENV_PREFIX}SECURITY_SENSITIVE_FIELDS`]: 'security.sensitiveFields',
       [`${ENV_PREFIX}SECURITY_MAX_QUERY_LENGTH`]: 'security.maxQueryLength',
+      [`${ENV_PREFIX}SECURITY_SAMPLE_MAX_ROWS`]: 'security.sampleMaxRows',
+      [`${ENV_PREFIX}SECURITY_QUERY_TIMEOUT_MS`]: 'security.queryTimeoutMs',
+      [`${ENV_PREFIX}SECURITY_RATE_LIMIT_ENABLED`]: 'security.rateLimit.enabled',
+      [`${ENV_PREFIX}SECURITY_RATE_LIMIT_WINDOW_MS`]: 'security.rateLimit.windowMs',
+      [`${ENV_PREFIX}SECURITY_RATE_LIMIT_MAX`]: 'security.rateLimit.max',
+      [`${ENV_PREFIX}SECURITY_RATE_LIMIT_PER_IP_MAX`]: 'security.rateLimit.perIpMax',
       
       // 日志配置
       [`${ENV_PREFIX}LOG_LEVEL`]: 'logging.level',
       [`${ENV_PREFIX}LOG_DESTINATION`]: 'logging.destination',
       [`${ENV_PREFIX}LOG_FILE_PATH`]: 'logging.filePath',
+      [`${ENV_PREFIX}LOG_SLOW_QUERY_MS`]: 'logging.slowQueryMs',
+      [`${ENV_PREFIX}LOG_HTTP_REQUESTS`]: 'logging.httpRequests',
       
       // MCP配置
       [`${ENV_PREFIX}MCP_TRANSPORT`]: 'mcp.transport',
       [`${ENV_PREFIX}MCP_HTTP_PORT`]: 'mcp.httpPort',
       [`${ENV_PREFIX}MCP_SERVER_NAME`]: 'mcp.serverName',
       [`${ENV_PREFIX}MCP_SERVER_VERSION`]: 'mcp.serverVersion',
+      [`${ENV_PREFIX}MCP_HTTP_API_KEY`]: 'mcp.httpApiKey',
+      [`${ENV_PREFIX}MCP_HTTP_API_KEYS`]: 'mcp.httpApiKeys',
+      [`${ENV_PREFIX}MCP_ENABLE_DNS_REBINDING_PROTECTION`]: 'mcp.enableDnsRebindingProtection',
+      [`${ENV_PREFIX}MCP_ALLOWED_HOSTS`]: 'mcp.allowedHosts',
+      [`${ENV_PREFIX}MCP_CORS_ALLOWED_ORIGINS`]: 'mcp.corsAllowedOrigins',
     };
     
     return map;
@@ -217,7 +248,15 @@ export class ConfigLoader {
       path.includes('maxSize') ||
       path.includes('httpPort') ||
       path.includes('connectionTimeout') ||
-      path.includes('maxQueryLength')
+      path.includes('connectionLimit') ||
+      path.includes('queueLimit') ||
+      path.includes('maxQueryLength') ||
+      path.includes('sampleMaxRows') ||
+      path.includes('queryTimeoutMs') ||
+      path.includes('slowQueryMs') ||
+      path.includes('windowMs') ||
+      path.includes('perIpMax') ||
+      path.includes('rateLimit.max')
     ) {
       const num = Number(value);
       return isNaN(num) ? value : num;

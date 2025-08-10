@@ -17,10 +17,17 @@ FROM node:18-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 
+# Create non-root user
+RUN groupadd -r app && useradd -r -g app app && mkdir -p /app && chown -R app:app /app
+
 # Copy production node_modules and dist
 COPY --from=base /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY package.json README.md ./
+
+# Adjust ownership
+RUN chown -R app:app /app
+USER app
 
 # Default to HTTP transport on 3000 (configurable via env)
 EXPOSE 3000

@@ -2,6 +2,7 @@ import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { SamplerService } from '../service.js'
 import { DatabaseConnector } from '../../../core/types/connector.js'
 import { ISecurityService } from '../../security/interface.js'
+import { ValidatedAppConfig } from '../../../core/config/schema.js'
 
 function makeConnector(): DatabaseConnector {
   return {
@@ -22,6 +23,16 @@ function makeSecurity(): ISecurityService {
   }
 }
 
+function makeConfig(): ValidatedAppConfig {
+  return {
+    database: { type: 'mysql' as any, host: 'h', port: 3306, user: 'u', password: 'p', database: 'd', connectionTimeout: 1000 },
+    cache: { enabled: true, ttl: 1, storage: 'memory', maxSize: 10, filePath: './cache' },
+    security: { readOnly: true, sensitiveFields: ['token', 'password'], maxQueryLength: 5000, sampleMaxRows: 100, queryTimeoutMs: 10000 },
+    logging: { level: 'info', destination: 'console', filePath: './logs/sql-mcp.log' },
+    mcp: { transport: 'stdio', httpPort: 3000, serverName: 't', serverVersion: '1.0.0' }
+  } as any
+}
+
 describe('SamplerService', () => {
   let connector: DatabaseConnector
   let security: ISecurityService
@@ -31,14 +42,14 @@ describe('SamplerService', () => {
     connector = makeConnector()
     security = makeSecurity()
     // @ts-ignore - direct instantiate with mocks
-    svc = new SamplerService(connector, security)
+    svc = new SamplerService(connector, security, makeConfig())
   })
 
   test('getSampleData validates inputs and masks sensitive fields', async () => {
     const res = await svc.getSampleData('users', 200, 0, 'id > 0')
     expect(security.validateIdentifier).toHaveBeenCalled()
     expect(security.validateWhereClause).toHaveBeenCalled()
-    // limit should be clamped to 100
+    // limit should be clamped to config.security.sampleMaxRows
     expect(connector.getSampleData).toHaveBeenCalledWith('users', 100, 0, 'id > 0')
     expect(res.data[0][1]).toBe('***REDACTED***')
   })

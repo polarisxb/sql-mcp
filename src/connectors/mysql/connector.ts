@@ -12,6 +12,8 @@ import {
 import { AbstractConnector } from '../base/connector.js'
 import { MySQLQueryBuilder } from './query-builder.js'
 import { MySQLMetadataMapper } from './metadata-mapper.js'
+import { container } from '../../core/di/container.js'
+import { APP_CONFIG, LOGGER_SERVICE } from '../../core/di/tokens.js'
 
 @Injectable()
 export class MySQLConnector extends AbstractConnector {
@@ -33,9 +35,9 @@ export class MySQLConnector extends AbstractConnector {
         database: config.database,
         ssl: (config.ssl ? {} : undefined) as PoolOptions['ssl'],
         connectTimeout: config.connectionTimeout,
-        waitForConnections: true,
-        connectionLimit: 10,
-        queueLimit: 0
+        waitForConnections: config.pool?.waitForConnections ?? true,
+        connectionLimit: config.pool?.connectionLimit ?? 10,
+        queueLimit: config.pool?.queueLimit ?? 0
       } as PoolOptions)
       // 测试连接
       const ok = await this.ping()
@@ -70,7 +72,45 @@ export class MySQLConnector extends AbstractConnector {
   private async query(sql: string, params?: any[]): Promise<[any[], FieldPacket[]]> {
     this.ensureConnected()
     if (!this.pool) throw new Error('Database connection not established')
-    return this.pool.query(sql, params || []) as unknown as [any[], FieldPacket[]]
+
+    const cfg: any = (() => { try { return container.resolve(APP_CONFIG) as any } catch { return undefined } })()
+    const timeoutMs: number | undefined = cfg?.security?.queryTimeoutMs
+    const slowMs: number | undefined = cfg?.logging?.slowQueryMs
+    const logger: any = (() => { try { return container.resolve(LOGGER_SERVICE) as any } catch { return console } })()
+
+    const started = Date.now()
+
+    const run = async () => {
+      const result = await this.pool!.query(sql, params || []) as unknown as [any[], FieldPacket[]]
+      return result
+    }
+
+    const exec = async () => {
+      if (!timeoutMs) return run()
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        const t = setTimeout(() => {
+          clearTimeout(t)
+          reject(new Error(`Query timed out after ${timeoutMs}ms`))
+        }, timeoutMs)
+      })
+      return Promise.race([run(), timeoutPromise]) as Promise<[any[], FieldPacket[]]>
+    }
+
+    try {
+      const res = await exec()
+      const durationMs = Date.now() - started
+      const sqlSummary = String(sql).slice(0, 80)
+      const level = slowMs && durationMs >= slowMs ? 'warn' : 'debug'
+      if (logger && typeof logger[level] === 'function') {
+        logger[level]('db.query', { durationMs, sqlSummary })
+      }
+      return res
+    } catch (e) {
+      const durationMs = Date.now() - started
+      const sqlSummary = String(sql).slice(0, 80)
+      logger?.error?.('db.query.error', { durationMs, sqlSummary, error: (e as Error).message })
+      throw e
+    }
   }
   
   async getDatabases(): Promise<string[]> {

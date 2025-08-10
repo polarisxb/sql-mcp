@@ -1,7 +1,7 @@
 import 'reflect-metadata'
 import { loadConfig } from './core/config/index.js'
 import { container } from './core/di/index.js'
-import { DATABASE_CONNECTOR, METADATA_SERVICE, SAMPLER_SERVICE, SECURITY_SERVICE, CACHE_SERVICE, LOGGER_SERVICE } from './core/di/tokens.js'
+import { DATABASE_CONNECTOR, METADATA_SERVICE, SAMPLER_SERVICE, SECURITY_SERVICE, CACHE_SERVICE, LOGGER_SERVICE, APP_CONFIG } from './core/di/tokens.js'
 import { createCacheFromConfig } from './core/cache/index.js'
 import { MySQLConnector } from './connectors/mysql/connector.js'
 import { McpServerFactory } from './mcp/server.js'
@@ -22,6 +22,9 @@ export async function start(): Promise<void> {
   // 注册全局 Logger
   const appLogger = createLoggerFromConfig(config.logging)
   container.registerInstance(LOGGER_SERVICE, appLogger)
+  
+  // 注册全局配置
+  container.registerInstance(APP_CONFIG, config)
   appLogger.info('Starting SQL-MCP...', { transport: config.mcp.transport, server: config.mcp.serverName })
 
   // 注册缓存

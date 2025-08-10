@@ -22,7 +22,10 @@ export function makeTestAppConfig(overrides: Partial<AppConfig> = {}): Validated
     security: {
       readOnly: false,
       sensitiveFields: ['password', 'token'],
-      maxQueryLength: 10000
+      maxQueryLength: 10000,
+      sampleMaxRows: 100,
+      queryTimeoutMs: 10000,
+      rateLimit: { enabled: false, windowMs: 60000, max: 120, perIpMax: 60 }
     },
     logging: {
       level: 'info',
