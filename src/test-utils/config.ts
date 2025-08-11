@@ -17,7 +17,8 @@ export function makeTestAppConfig(overrides: Partial<AppConfig> = {}): Validated
       ttl: 3600,
       storage: 'memory',
       maxSize: 1000,
-      filePath: null as any
+      filePath: null as any,
+      prewarmOnStart: true
     },
     security: {
       readOnly: false,
@@ -25,7 +26,8 @@ export function makeTestAppConfig(overrides: Partial<AppConfig> = {}): Validated
       maxQueryLength: 10000,
       sampleMaxRows: 100,
       queryTimeoutMs: 10000,
-      rateLimit: { enabled: false, windowMs: 60000, max: 120, perIpMax: 60 }
+      rateLimit: { enabled: false, windowMs: 60000, max: 120, perIpMax: 60 },
+      queryMaxRows: 200
     },
     logging: {
       level: 'info',
@@ -36,7 +38,10 @@ export function makeTestAppConfig(overrides: Partial<AppConfig> = {}): Validated
       transport: 'stdio',
       httpPort: null as any,
       serverName: 'Test Server',
-      serverVersion: '1.0.0'
+      serverVersion: '1.0.0',
+      stdioSafe: false,
+      stdioCompact: false,
+      outputJsonOnly: false
     }
   }
 

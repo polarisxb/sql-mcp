@@ -30,7 +30,8 @@ export const CacheConfigSchema = z.object({
   ttl: z.number().int().positive().default(3600),
   storage: z.enum(['memory', 'file']).default('memory'),
   maxSize: z.number().int().positive().default(100),
-  filePath: z.string().nullable().optional().default('./cache')
+  filePath: z.string().nullable().optional().default('./cache'),
+  prewarmOnStart: z.boolean().default(true)
 }).refine(data => {
   // 如果存储类型是file，则filePath必须存在且不为null
   return !(data.storage === 'file' && (!data.filePath || data.filePath === null));
@@ -54,7 +55,9 @@ export const SecurityConfigSchema = z.object({
     windowMs: z.number().int().positive().default(60000),
     max: z.number().int().positive().default(120),
     perIpMax: z.number().int().positive().default(60)
-  }).default({})
+  }).default({}),
+  // New: max rows for executeQuery result formatting/pagination
+  queryMaxRows: z.number().int().positive().default(200)
 });
 
 /**
@@ -87,7 +90,11 @@ export const McpConfigSchema = z.object({
   httpApiKeys: z.array(z.string()).default([]),
   enableDnsRebindingProtection: z.boolean().default(false),
   allowedHosts: z.array(z.string()).default([]),
-  corsAllowedOrigins: z.array(z.string()).default([])
+  corsAllowedOrigins: z.array(z.string()).default([]),
+  // New: stdio focused output presets
+  stdioSafe: z.boolean().default(false),
+  stdioCompact: z.boolean().default(false),
+  outputJsonOnly: z.boolean().default(false)
 }).refine(data => {
   return !(data.transport === 'http' && (!data.httpPort || data.httpPort === null));
 }, {

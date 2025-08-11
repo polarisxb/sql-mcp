@@ -21,11 +21,25 @@ export async function start(): Promise<void> {
 
   // 注册全局 Logger
   const appLogger = createLoggerFromConfig(config.logging)
+  // 在 stdio 传输 + console 目标下，避免 info/debug 写入 stdout，改为 warn 级别
+  if (config.mcp.transport === 'stdio' && (config.logging.destination as any) !== 'file') {
+    appLogger.setLevel('warn')
+  }
+  // Apply stdio-safe preset
+  if (config.mcp.transport === 'stdio' && config.mcp.stdioSafe) {
+    appLogger.setLevel('warn')
+    // mutate in-memory config to honor presets without persisting
+    ;(config as any).mcp.stdioCompact = true
+    ;(config as any).mcp.outputJsonOnly = (config as any).mcp.outputJsonOnly ?? false
+  }
   container.registerInstance(LOGGER_SERVICE, appLogger)
   
   // 注册全局配置
   container.registerInstance(APP_CONFIG, config)
-  appLogger.info('Starting SQL-MCP...', { transport: config.mcp.transport, server: config.mcp.serverName })
+  // 仅非 stdio 或文件日志时打印启动信息
+  if (config.mcp.transport !== 'stdio' || (config.logging.destination as any) === 'file') {
+    appLogger.info('Starting SQL-MCP...', { transport: config.mcp.transport, server: config.mcp.serverName })
+  }
 
   // 注册缓存
   const cache = createCacheFromConfig(config)
@@ -40,6 +54,20 @@ export async function start(): Promise<void> {
   const metadata = container.resolve(METADATA_SERVICE)
   const sampler = container.resolve(SAMPLER_SERVICE)
   const security = container.resolve(SECURITY_SERVICE)
+
+  // 冷启动预热：后台预取表清单（非阻塞）
+  if ((config.cache as any)?.prewarmOnStart) {
+    ;(async () => {
+      try {
+        const db = config.database?.database || undefined
+        const started = Date.now()
+        await (metadata as any).getTables(db)
+        appLogger?.debug?.('prewarm.tables.done', { durationMs: Date.now() - started, database: db })
+      } catch (e) {
+        appLogger?.warn?.('prewarm.tables.failed', { error: (e as Error).message })
+      }
+    })()
+  }
 
   // Handlers 与工厂
   const tableSchemaHandler = new TableSchemaHandler(metadata as any, security as any)

@@ -14,7 +14,10 @@ import {
   ExecuteQueryToolSchema,
   DatabaseResourceTemplate,
   TableResourceTemplate,
-  SchemaResourceTemplate
+  SchemaResourceTemplate,
+  SearchTablesToolSchema,
+  SearchColumnsToolSchema,
+  RefreshCacheToolSchema
 } from './definitions.js'
 
 @Injectable()
@@ -69,7 +72,79 @@ export class McpServerFactory {
         }
       }
     )
-    
+
+    // searchTables (alias with required pattern)
+    server.registerTool(
+      SearchTablesToolSchema.name,
+      {
+        title: SearchTablesToolSchema.title,
+        description: SearchTablesToolSchema.description,
+        inputSchema: SearchTablesToolSchema.inputSchema
+      },
+      async ({ database, pattern }) => {
+        try {
+          const tables = await this.metadataService.getTables(database, pattern)
+          if (!tables.length) return this.textResult('未找到匹配的表。')
+          return this.textResult(`# 匹配的表\n\n${tables.map((t: string) => `- ${t}`).join('\n')}`)
+        } catch (error) {
+          return this.errorResult(`Error: ${(error as Error).message}`)
+        }
+      }
+    )
+
+    // searchColumns by scanning schemas
+    server.registerTool(
+      SearchColumnsToolSchema.name,
+      {
+        title: SearchColumnsToolSchema.title,
+        description: SearchColumnsToolSchema.description,
+        inputSchema: SearchColumnsToolSchema.inputSchema
+      },
+      async ({ database, pattern }) => {
+        try {
+          const tables = await this.metadataService.getTables(database)
+          if (!tables.length) return this.textResult('没有可检索的表。')
+          const regex = new RegExp(String(pattern).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/%/g, '.*').replace(/_/g, '.'), 'i')
+          const rows: string[] = []
+          for (const tbl of tables) {
+            const schema = await this.metadataService.getTableSchema(tbl, database)
+            for (const col of schema.columns) {
+              const candidates = [col.name, col.dataType, col.comment || '']
+              if (candidates.some(v => regex.test(String(v)))) {
+                rows.push(`| ${tbl} | ${col.name} | ${col.dataType} | ${col.comment || ''} |`)
+              }
+            }
+          }
+          if (!rows.length) return this.textResult('未找到匹配的列。')
+          const header = ['# 匹配的列', '', '| 表 | 列 | 类型 | 备注 |', '|----|----|------|------|']
+          return this.textResult(header.concat(rows).join('\n'))
+        } catch (error) {
+          return this.errorResult(`Error: ${(error as Error).message}`)
+        }
+      }
+    )
+
+    // refreshCache tool
+    server.registerTool(
+      RefreshCacheToolSchema.name,
+      {
+        title: RefreshCacheToolSchema.title,
+        description: RefreshCacheToolSchema.description,
+        inputSchema: RefreshCacheToolSchema.inputSchema
+      },
+      async ({ scope, tableName, database }) => {
+        try {
+          if (scope === 'table' && !tableName) {
+            return this.errorResult('当 scope=table 时，必须提供 tableName。')
+          }
+          await this.metadataService.refreshCache(scope, tableName, database)
+          return this.textResult('缓存刷新成功。')
+        } catch (error) {
+          return this.errorResult(`Error: ${(error as Error).message}`)
+        }
+      }
+    )
+
     server.registerTool(
       TableRelationsToolSchema.name,
       {

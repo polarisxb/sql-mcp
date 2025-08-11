@@ -18,6 +18,7 @@ export interface AppConfig {
     storage: 'memory' | 'file';
     maxSize: number;
     filePath?: string;
+    prewarmOnStart: boolean;
   };
   security: {
     readOnly: boolean;
@@ -31,6 +32,7 @@ export interface AppConfig {
       max: number;
       perIpMax: number;
     };
+    queryMaxRows: number;
   };
   logging: {
     level: 'debug' | 'info' | 'warn' | 'error';
@@ -49,6 +51,9 @@ export interface AppConfig {
     enableDnsRebindingProtection?: boolean;
     allowedHosts?: string[];
     corsAllowedOrigins?: string[];
+    stdioSafe?: boolean;
+    stdioCompact?: boolean;
+    outputJsonOnly?: boolean;
   };
 }
 
@@ -171,6 +176,7 @@ export class ConfigLoader {
       [`${ENV_PREFIX}CACHE_STORAGE`]: 'cache.storage',
       [`${ENV_PREFIX}CACHE_MAX_SIZE`]: 'cache.maxSize',
       [`${ENV_PREFIX}CACHE_FILE_PATH`]: 'cache.filePath',
+      [`${ENV_PREFIX}CACHE_PREWARM_ON_START`]: 'cache.prewarmOnStart',
       
       // 安全配置
       [`${ENV_PREFIX}SECURITY_READ_ONLY`]: 'security.readOnly',
@@ -182,6 +188,7 @@ export class ConfigLoader {
       [`${ENV_PREFIX}SECURITY_RATE_LIMIT_WINDOW_MS`]: 'security.rateLimit.windowMs',
       [`${ENV_PREFIX}SECURITY_RATE_LIMIT_MAX`]: 'security.rateLimit.max',
       [`${ENV_PREFIX}SECURITY_RATE_LIMIT_PER_IP_MAX`]: 'security.rateLimit.perIpMax',
+      [`${ENV_PREFIX}SECURITY_QUERY_MAX_ROWS`]: 'security.queryMaxRows',
       
       // 日志配置
       [`${ENV_PREFIX}LOG_LEVEL`]: 'logging.level',
@@ -200,6 +207,9 @@ export class ConfigLoader {
       [`${ENV_PREFIX}MCP_ENABLE_DNS_REBINDING_PROTECTION`]: 'mcp.enableDnsRebindingProtection',
       [`${ENV_PREFIX}MCP_ALLOWED_HOSTS`]: 'mcp.allowedHosts',
       [`${ENV_PREFIX}MCP_CORS_ALLOWED_ORIGINS`]: 'mcp.corsAllowedOrigins',
+      [`${ENV_PREFIX}MCP_STDIO_SAFE`]: 'mcp.stdioSafe',
+      [`${ENV_PREFIX}MCP_STDIO_COMPACT`]: 'mcp.stdioCompact',
+      [`${ENV_PREFIX}OUTPUT_JSON_ONLY`]: 'mcp.outputJsonOnly',
     };
     
     return map;
@@ -256,7 +266,8 @@ export class ConfigLoader {
       path.includes('slowQueryMs') ||
       path.includes('windowMs') ||
       path.includes('perIpMax') ||
-      path.includes('rateLimit.max')
+      path.includes('rateLimit.max') ||
+      path.includes('queryMaxRows')
     ) {
       const num = Number(value);
       return isNaN(num) ? value : num;

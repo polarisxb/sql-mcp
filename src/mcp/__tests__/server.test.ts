@@ -71,11 +71,12 @@ describe('McpServerFactory', () => {
     const server = factory.create('sql-mcp', '1.0.0')
     expect(server).toBeInstanceOf(McpServer)
 
-    // 5 tools registered
-    expect(spies.tool).toHaveBeenCalledTimes(5)
+    // 8 tools registered
+    expect(spies.tool).toHaveBeenCalledTimes(8)
     const toolNames = spies.tool.mock.calls.map((c: any[]) => c[0])
     expect(toolNames).toEqual(expect.arrayContaining([
-      'getTableSchema', 'listTables', 'getTableRelations', 'getSampleData', 'executeQuery'
+      'getTableSchema', 'listTables', 'getTableRelations', 'getSampleData', 'executeQuery',
+      'searchTables', 'searchColumns', 'refreshCache'
     ]))
 
     // getTableSchema forwards to handler

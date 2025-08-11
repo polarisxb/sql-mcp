@@ -33,6 +33,12 @@ sql-mcp --type mysql \
 - Override defaults via env vars prefixed with `SQL_MCP_`.
 - See `src/core/config/loader.ts` for full mapping.
 
+## New in 1.2 (stdio-focused)
+- Flags: `--stdio-safe`, `--compact`, `--json-only`
+- executeQuery: supports `limit/offset` pagination and returns JSON meta (`limit/offset/nextOffset/hasMore/durationMs/columns/data`)
+- Tools: `searchTables(pattern)`, `searchColumns(pattern)`, `refreshCache(scope)`
+- Prewarm on start: `SQL_MCP_CACHE_PREWARM_ON_START=true`
+
 ## Docker
 ```bash
 docker run --rm -p 3000:3000 \

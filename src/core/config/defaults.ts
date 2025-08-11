@@ -20,7 +20,8 @@ export const DEFAULT_CONFIG = {
     ttl: 3600, // 1小时
     storage: 'memory' as const,
     maxSize: 100, // 缓存项目数
-    filePath: './cache'
+    filePath: './cache',
+    prewarmOnStart: true
   },
   security: {
     readOnly: true,
@@ -28,7 +29,8 @@ export const DEFAULT_CONFIG = {
     maxQueryLength: 5000,
     sampleMaxRows: 100,
     queryTimeoutMs: 10000,
-    rateLimit: { enabled: false, windowMs: 60000, max: 120, perIpMax: 60 }
+    rateLimit: { enabled: false, windowMs: 60000, max: 120, perIpMax: 60 },
+    queryMaxRows: 200
   },
   logging: {
     level: 'info' as const,
@@ -46,6 +48,9 @@ export const DEFAULT_CONFIG = {
     httpApiKeys: [],
     enableDnsRebindingProtection: false,
     allowedHosts: [],
-    corsAllowedOrigins: []
+    corsAllowedOrigins: [],
+    stdioSafe: false,
+    stdioCompact: false,
+    outputJsonOnly: false
   }
 }; 

@@ -54,6 +54,9 @@ SQL-MCP - 数据库上下文协议服务
   --verbose               启用详细日志 (等价于 --log-level debug)
   --log-dest <目标>        日志输出目标 (console|file)
   --log-file <路径>        日志文件路径 (当 log-dest=file 时)
+  --stdio-safe            启用 stdio 安全预设（紧凑/更严上限/禁用噪音输出）
+  --compact               启用紧凑输出（减少 Markdown 体积）
+  --json-only             仅输出 JSON 内容
   --help, -h              显示帮助信息
 `)
 }
@@ -98,6 +101,11 @@ async function main() {
   if (options.verbose === 'true') process.env.SQL_MCP_LOG_LEVEL = 'debug'
   if (options['log-dest']) process.env.SQL_MCP_LOG_DESTINATION = options['log-dest']
   if (options['log-file']) process.env.SQL_MCP_LOG_FILE_PATH = options['log-file']
+
+  // stdio 输出控制
+  if (options['stdio-safe'] === 'true') process.env.SQL_MCP_MCP_STDIO_SAFE = 'true'
+  if (options['compact'] === 'true') process.env.SQL_MCP_MCP_STDIO_COMPACT = 'true'
+  if (options['json-only'] === 'true') process.env.SQL_MCP_OUTPUT_JSON_ONLY = 'true'
 
   await start()
 }
