@@ -4,150 +4,264 @@
 [![Docker](https://github.com/polarisxb/sql-mcp/actions/workflows/docker.yml/badge.svg)](https://github.com/polarisxb/sql-mcp/actions/workflows/docker.yml)
 [![npm version](https://img.shields.io/npm/v/%40polarisxb%2Fsql-mcp.svg)](https://www.npmjs.com/package/@polarisxb/sql-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/polarisxb/sql-mcp)
 
-数据库上下文协议（Model Context Protocol, MCP）服务器，提供数据库元数据、样本数据与只读查询能力，支持 stdio 与 Streamable HTTP 传输。
+**SQL-MCP** 是一个实现了模型上下文协议 (Model Context Protocol, MCP) 的服务器，其核心功能是作为连接大型语言模型 (LLM) 与数据库的桥梁。它允许 LLM 安全、高效地访问数据库信息，包括进行**元数据查询**、**数据采样**和**只读SQL查询**。
 
-English version below. 如需英文全文，请见 [README.en.md](README.en.md)。变更记录见 [CHANGELOG.md](CHANGELOG.md)。
+本项目当前主要支持 **MySQL**，并提供 **Stdio** 和 **HTTP** 两种灵活的传输方式，既可以作为独立的 HTTP 服务运行，也可以轻松集成到其他开发工具链中。
+
+如需英文版本，请参阅 [README.en.md](README.en.md)。
 
 ---
 
-## 安装
+## ✨ 功能特性
 
-- 全局安装（推荐）
+-   **元数据查询**: 详细查询数据库、表、列、索引、外键等元信息。
+-   **数据采样**: 安全地获取表的示例数据，支持分页和自动脱敏。
+-   **只读查询**: 严格限制执行 `SELECT` 和 `SHOW` 等只读 SQL，保障数据安全。
+-   **快速检索**: 提供 `searchTables` 和 `searchColumns` 接口，用于快速查找表和列。
+-   **缓存管理**: 支持手动刷新元数据缓存，确保大模型获取的信息实时准确。
+-   **安全可靠**: 内置 API Key 认证、CORS 控制、IP 限流等多重安全机制。
+
+---
+
+## 🚀 快速开始
+
+### 1. 安装
+
+您可以选择通过 `npm` 全局安装，或从源码克隆后构建。
+
+**全局安装 (推荐)**:
+
 ```bash
 npm i -g @polarisxb/sql-mcp
 ```
-- 或源码构建
+
+**从源码构建**:
+
 ```bash
+git clone https://github.com/polarisxb/sql-mcp.git
+cd sql-mcp
 npm ci
 npm run build
 ```
 
-## 快速开始
+### 2. 启动服务
 
-- 使用 stdio 启动（适合在 Cursor/Claude Desktop 里作为命令型 MCP）
+根据您的使用场景，选择合适的启动方式。
+
+**通过 Stdio (标准输入/输出)**:
+
+此方式适合在 **Cursor** 或其他支持命令式 MCP 的工具中进行本地集成。
+
 ```bash
 sql-mcp --type mysql \
   --host 127.0.0.1 --port 3306 \
-  --user root --password ****** --database mydb \
+  --user root --password your_password --database your_db \
   --transport stdio
 ```
 
-- 使用 HTTP 启动（提供 /mcp 接口，外部通过 URL 连接）
+**通过 HTTP**:
+
+将 SQL-MCP 作为独立的 HTTP 服务运行，供远程应用调用。
+
 ```bash
 sql-mcp --type mysql \
   --host 127.0.0.1 --port 3306 \
-  --user root --password ****** --database mydb \
+  --user root --password your_password --database your_db \
   --transport http --httpPort 3000
 ```
 
-- 日志与输出
-```bash
-sql-mcp --verbose
-sql-mcp --log-dest file --log-file ./logs/sql-mcp.log
+服务将在 `http://127.0.0.1:3000/mcp` 提供 API 端点。
+
+---
+
+## 🔌 Cursor 集成
+
+在 Cursor 中，通过配置 `mcp.json` 文件即可轻松集成 SQL-MCP。
+
+**配置文件路径**:
+
+-   **Windows**: `%USERPROFILE%\\.cursor\\mcp.json`
+-   **macOS/Linux**: `~/.cursor/mcp.json`
+
+### Stdio 模式 (推荐)
+
+这是最简单直接的集成方式，无需手动启动服务。
+
+**使用 npx (无需全局安装)**:
+
+```json
+{
+  "mcpServers": {
+    "sql-mcp-server": {
+      "command": "npx",
+      "args": ["-y", "@polarisxb/sql-mcp"],
+      "env": {
+        "SQL_MCP_DB_TYPE": "mysql",
+        "SQL_MCP_DB_HOST": "127.0.0.1",
+        "SQL_MCP_DB_PORT": "3306",
+        "SQL_MCP_DB_USER": "root",
+        "SQL_MCP_DB_PASSWORD": "your_password",
+        "SQL_MCP_DB_NAME": "your_database",
+        "SQL_MCP_LOG_LEVEL": "warn"
+      }
+    }
+  }
+}
 ```
 
-- Stdio 安全与紧凑输出（新）
-```bash
-# 更安全的 stdio 预设：压低日志、紧凑输出、合理上限
-sql-mcp --transport stdio --stdio-safe
-# 仅返回 JSON（更适合程序消费）
-sql-mcp --transport stdio --json-only
+**从源码运行 (供开发者)**:
+
+如果您想使用开发中的版本，可以配置从项目目录启动。
+
+```json
+{
+  "mcpServers": {
+    "sql-mcp-dev": {
+      "command": "node",
+      "args": [
+        "C:/path/to/your/sql-mcp/dist/cli.js", 
+        "--transport", "stdio"
+      ],
+      "env": {
+        "SQL_MCP_DB_HOST": "127.0.0.1"
+      }
+    }
+  }
+}
 ```
 
-## Cursor 集成
+### HTTP 模式
 
-- stdio（推荐）：
-  - command: `node`
-  - args: `["C:/all_project/sql-mcp/dist/cli.js", "--transport", "stdio"]`
-  - Env: 设置 `SQL_MCP_*` 数据库只读账号
-- http：
-  - url: `http://127.0.0.1:3000/mcp`
+如果您已将 SQL-MCP 作为独立的 HTTP 服务运行，可以在 Cursor 中通过 URL 连接。
 
-## 配置
+```json
+{
+  "mcpServers": {
+    "sql-mcp-http": {
+      "url": "http://127.0.0.1:3000/mcp"
+    }
+  }
+}
+```
 
-配置优先级：默认值 < `.env`/JSON/JS 配置 < 环境变量（`SQL_MCP_*`）。
+---
 
-常用环境变量（节选）：
-- 数据库
-  - `SQL_MCP_DB_TYPE` → `database.type`（`mysql`）
-  - `SQL_MCP_DB_HOST` / `SQL_MCP_DB_PORT` / `SQL_MCP_DB_USER` / `SQL_MCP_DB_PASSWORD` / `SQL_MCP_DB_NAME`
-  - `SQL_MCP_DB_TIMEOUT`（连接超时毫秒）
-- 日志
-  - `SQL_MCP_LOG_LEVEL`（`debug|info|warn|error`）
-  - `SQL_MCP_LOG_DESTINATION`（`console|file`）
-  - `SQL_MCP_LOG_FILE_PATH`
-- MCP
-  - `SQL_MCP_MCP_TRANSPORT`（`stdio|http`）
-  - `SQL_MCP_MCP_HTTP_PORT`
+## ⚙️ 配置选项
 
-复制 `ENV.example` 作为模板并填充。
+SQL-MCP 支持通过**命令行参数**、**环境变量**和**配置文件**进行配置。
 
-## CLI 选项一览
+**配置优先级**: **命令行参数 > 环境变量 > 配置文件**。
 
-| 选项 | 类型 | 默认 | 说明 | 示例 |
-|---|---|---|---|---|
-| `--type` | string | `mysql` | 数据库类型（当前支持 MySQL） | `--type mysql` |
-| `--host` | string | `127.0.0.1` | 数据库主机 | `--host 192.168.1.10` |
-| `--port` | number | `3306` | 数据库端口 | `--port 3306` |
-| `--user` | string | - | 数据库用户（建议只读权限） | `--user reader` |
-| `--password` | string | - | 数据库密码 | `--password secret` |
-| `--database` | string | - | 默认数据库/Schema | `--database appdb` |
-| `--transport` | enum | `stdio` | MCP 传输：`stdio` 或 `http` | `--transport http` |
-| `--httpPort` | number | `3000` | HTTP 服务器端口（当 `--transport http` 时生效） | `--httpPort 3000` |
-| `--verbose` | flag | `false` | 打印 debug 日志 | `--verbose` |
-| `--log-dest` | enum | `console` | 日志目的地：`console`/`file` | `--log-dest file` |
-| `--log-file` | string | - | 日志文件路径（当 `--log-dest file` 时生效） | `--log-file ./logs/sql-mcp.log` |
-| `--stdio-safe` | flag | `false` | Stdio 安全预设：压低日志、紧凑输出、合理上限 | `--stdio-safe` |
-| `--compact` | flag | `false` | 紧凑输出（减少 Markdown 体积） | `--compact` |
-| `--json-only` | flag | `false` | 仅输出 JSON 内容 | `--json-only` |
+### 命令行参数
 
-> 等价环境变量：均可用 `SQL_MCP_*` 设置，优先级高于文件配置。
+以下为常用的命令行参数：
 
-## 环境变量对照表
+| 选项 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `--type` | string | `mysql` | 数据库类型 (当前仅支持 `mysql`) |
+| `--host` | string | `127.0.0.1` | 数据库主机 |
+| `--port` | number | `3306` | 数据库端口 |
+| `--user` | string | - | 数据库用户名 (建议使用只读权限) |
+| `--password` | string | - | 数据库密码 |
+| `--database` | string | - | 默认数据库 |
+| `--transport`| enum | `stdio` | 传输模式 (`stdio` 或 `http`) |
+| `--httpPort` | number | `3000` | HTTP 服务的端口 |
+| `--verbose` | flag | `false` | 输出详细的 `debug` 日志 |
+| `--log-dest` | enum | `console` | 日志输出位置 (`console` 或 `file`) |
+| `--log-file` | string | - | 日志文件路径 (当 `log-dest` 为 `file` 时) |
+| `--stdio-safe`| flag | `false`| Stdio 安全预设：优化日志，精简输出 |
+| `--compact`| flag | `false`| 紧凑输出，减少 Markdown 体积 |
+| `--json-only`| flag | `false`| 仅输出 JSON 内容，无 Markdown 渲染 |
 
-| 环境变量 | 类型/默认 | 说明 |
+### 环境变量
+
+所有配置项都可以通过前缀为 `SQL_MCP_` 的环境变量进行设置。例如, `--host` 对应的环境变量为 `SQL_MCP_DB_HOST`。
+
+复制 `ENV.example` 文件为 `.env` 并填入您的数据库连接信息，是快速开始的好方法。
+
+#### 环境变量对照表
+
+| 环境变量 | 默认值 | 说明 |
 |---|---|---|
+| **数据库连接** | | |
 | `SQL_MCP_DB_TYPE` | `mysql` | 数据库类型 |
 | `SQL_MCP_DB_HOST` | `127.0.0.1` | 主机 |
 | `SQL_MCP_DB_PORT` | `3306` | 端口 |
 | `SQL_MCP_DB_USER` | - | 用户 |
 | `SQL_MCP_DB_PASSWORD` | - | 密码 |
 | `SQL_MCP_DB_NAME` | - | 数据库名 |
-| `SQL_MCP_DB_TIMEOUT` | `10000` | 连接超时（ms） |
+| `SQL_MCP_DB_TIMEOUT` | `10000` | 连接超时 (ms) |
 | `SQL_MCP_DB_POOL_CONNECTION_LIMIT` | `10` | 连接池最大连接数 |
-| `SQL_MCP_DB_POOL_WAIT_FOR_CONNECTIONS` | `true` | 池满时是否等待 |
-| `SQL_MCP_DB_POOL_QUEUE_LIMIT` | `0` | 等待队列上限（0=无限） |
-| `SQL_MCP_LOG_LEVEL` | `info` | 日志级别：`debug|info|warn|error` |
-| `SQL_MCP_LOG_DESTINATION` | `console` | 日志目的地：`console|file` |
-| `SQL_MCP_LOG_FILE_PATH` | - | 文件路径（当目的地为 `file`） |
-| `SQL_MCP_LOG_SLOW_QUERY_MS` | `1000` | 慢查询阈值（ms），超过则 warn |
+| `SQL_MCP_DB_POOL_QUEUE_LIMIT` | `0` | 等待队列上限 (`0`=无限) |
+| **日志** | | |
+| `SQL_MCP_LOG_LEVEL` | `info` | 日志级别: `debug\|info\|warn\|error` |
+| `SQL_MCP_LOG_DESTINATION` | `console` | 日志目的地: `console\|file` |
+| `SQL_MCP_LOG_FILE_PATH` | - | 文件路径 (当目的地为 `file`) |
+| `SQL_MCP_LOG_SLOW_QUERY_MS` | `1000` | 慢查询阈值 (ms) |
 | `SQL_MCP_LOG_HTTP_REQUESTS` | `true` | 是否记录 HTTP 请求日志 |
-| `SQL_MCP_MCP_TRANSPORT` | `stdio` | MCP 传输：`stdio|http` |
-| `SQL_MCP_MCP_HTTP_PORT` | `3000` | HTTP 端口（当传输为 `http`） |
-| `SQL_MCP_MCP_HTTP_API_KEY` | - | 单个 API Key（可选） |
+| **服务与安全** | | |
+| `SQL_MCP_MCP_TRANSPORT` | `stdio` | MCP 传输: `stdio\|http` |
+| `SQL_MCP_MCP_HTTP_PORT` | `3000` | HTTP 端口 |
+| `SQL_MCP_MCP_HTTP_API_KEY` | - | 单个 API Key |
 | `SQL_MCP_MCP_HTTP_API_KEYS` | - | 多个 API Key，逗号分隔 |
 | `SQL_MCP_MCP_ENABLE_DNS_REBINDING_PROTECTION` | `false` | 启用 Host 校验 |
-| `SQL_MCP_MCP_ALLOWED_HOSTS` | - | 允许的 Host 列表，逗号分隔 |
-| `SQL_MCP_MCP_CORS_ALLOWED_ORIGINS` | - | 允许的 CORS Origin 列表，逗号分隔 |
+| `SQL_MCP_MCP_CORS_ALLOWED_ORIGINS` | - | 允许的 CORS Origin，逗号分隔 |
+| `SQL_MCP_SECURITY_QUERY_TIMEOUT_MS` | `10000` | 查询超时时间 (ms) |
 | `SQL_MCP_SECURITY_SAMPLE_MAX_ROWS` | `100` | 采样最大行数上限 |
-| `SQL_MCP_SECURITY_QUERY_TIMEOUT_MS` | `10000` | 查询超时时间（ms） |
+| `SQL_MCP_SECURITY_QUERY_MAX_ROWS` | `200` | `executeQuery` 单次返回行数上限 |
 | `SQL_MCP_SECURITY_RATE_LIMIT_ENABLED` | `false` | 启用 `/mcp` 路由限流 |
-| `SQL_MCP_SECURITY_RATE_LIMIT_WINDOW_MS` | `60000` | 限流窗口（ms） |
+| `SQL_MCP_SECURITY_RATE_LIMIT_WINDOW_MS` | `60000` | 限流窗口 (ms) |
 | `SQL_MCP_SECURITY_RATE_LIMIT_MAX` | `120` | 窗口内全局最大请求数 |
 | `SQL_MCP_SECURITY_RATE_LIMIT_PER_IP_MAX` | `60` | 窗口内单 IP 最大请求数 |
-| `SQL_MCP_SECURITY_QUERY_MAX_ROWS` | `200` | `executeQuery` 单次返回行数上限（分页上限） |
-| `SQL_MCP_MCP_STDIO_SAFE` | `false` | 启用 stdio 安全预设 |
-| `SQL_MCP_MCP_STDIO_COMPACT` | `false` | 启用紧凑输出（减少 Markdown 体积） |
-| `SQL_MCP_OUTPUT_JSON_ONLY` | `false` | 仅输出 JSON 内容 |
+| **其他** | | |
 | `SQL_MCP_CACHE_PREWARM_ON_START` | `true` | 启动时后台预热表清单 |
+| `SQL_MCP_MCP_STDIO_SAFE` | `false` | 启用 stdio 安全预设 |
+| `SQL_MCP_MCP_STDIO_COMPACT` | `false` | 启用紧凑输出 |
+| `SQL_MCP_OUTPUT_JSON_ONLY` | `false` | 仅输出 JSON 内容 |
 
-> 更多映射详见 `src/core/config/loader.ts`。
+> 更多配置细节请参阅 `src/core/config/loader.ts`。
 
-## 功能概览
-- 元数据：库/表/列、索引、约束、关系
-- 取样：`SELECT * FROM schema.table LIMIT N`（WHERE 可选，自动脱敏）；当存在更多数据时，返回中包含 `hasMore=true`，可用 `offset+limit` 作为下一页起点。
-- 查询：只读（`SELECT`/`SHOW`）；`executeQuery` 支持 `limit/offset` 分页，返回 JSON 元信息（`limit/offset/nextOffset/hasMore/durationMs/columns/data`）。
-- 检索（新）：`searchTables(pattern)` 与 `searchColumns(pattern)` 快速检索表或列。
-- 维护（新）：`refreshCache(scope=all|table)` 刷新元数据缓存。
+---
+
+## 🏛️ 项目结构
+
+```
+.
+├── src/
+│   ├── cli/          # 命令行接口 (CLI) 相关逻辑
+│   ├── connectors/   # 数据库连接器 (目前为 MySQL)
+│   ├── core/         # 核心业务逻辑，包括配置加载和日志
+│   ├── mcp/          # MCP 协议实现和处理器
+│   ├── middleware/   # Express 中间件 (认证、日志、限流等)
+│   ├── services/     # 核心服务 (元数据、查询、缓存等)
+│   ├── types/        # TypeScript 类型定义
+│   ├── utils/        # 通用工具函数
+│   ├── cli.ts        # CLI 入口文件
+│   └── index.ts      # HTTP 服务入口文件
+├── Dockerfile        # 用于构建 Docker 镜像
+├── package.json      # 项目依赖和脚本
+└── tsconfig.json     # TypeScript 配置文件
+```
+
+---
+
+## 🤝 贡献
+
+我们非常欢迎社区通过 **Pull Request** 或 **Issues** 为项目做出贡献。在提交代码前，请确保您的代码通过了 lint 和 test 检查。
+
+```bash
+# 代码风格检查
+npm run lint
+
+# 运行单元测试
+npm run test
+```
+
+---
+
+## 📄 开源许可
+
+本项目基于 [MIT](LICENSE) 许可开源。 
