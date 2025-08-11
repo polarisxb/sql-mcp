@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.1] - 2025-08-11
+
+### Documentation
+
+- **Comprehensive README Overhaul**: The `README.md` has been completely rewritten for better clarity, structure, and readability.
+- **Cursor Integration Guide**: Added a new section with detailed instructions and examples for integrating with Cursor using both `stdio` and `http` modes.
+- **Improved Configuration Details**: Re-introduced and enhanced the environment variable reference table, making configuration more transparent.
+- **Refined Project Description**: Updated the core project description to more accurately define SQL-MCP's role as a bridge between LLMs and databases.
+
 ## [1.2.0] - 2025-08-11
 - Stdio experience:
   - New flags: `--stdio-safe`, `--compact`, `--json-only`
