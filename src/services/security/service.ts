@@ -23,8 +23,12 @@ export class SecurityService implements ISecurityService {
   ]
 
   validateIdentifier(identifier: string): void {
+    const id = String(identifier ?? '').trim()
+    if (!id) {
+      throw new Error('标识符不能为空')
+    }
     const safePattern = /^[a-zA-Z0-9_$.]+$/
-    if (!safePattern.test(identifier)) {
+    if (!safePattern.test(id)) {
       throw new Error(`不安全的标识符: ${identifier}`)
     }
   }

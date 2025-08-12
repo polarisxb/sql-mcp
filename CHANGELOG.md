@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2025-08-12
+
+### Added
+- **CLI: DSN support** (`--dsn mysql://user:pass@host:port/dbname`) with explicit flags overriding DSN parts.
+- **Demo environment**: `docker compose` with auto-initialized sample e-commerce schema (`demo/init.sql`), healthcheck, and service dependency on MySQL readiness.
+- **MCP Inspector guide** in README for HTTP and stdio modes.
+
+### Changed
+- **HTTP content compliance**: Replaced non-standard `{ type: "json" }` results with MCP-compliant `{ type: "resource", mimeType: "application/json", text }` in query/sample handlers.
+- **Fuzzy search UX**: When no `%`/`_` in pattern, defaults to substring match (case-insensitive). `%`/`_` still supported for LIKE semantics.
+- **Identifier validation**: Trim input and provide clearer error when empty.
+- **Docs**: README enhanced with Demo quickstart, DSN usage, Inspector steps, and troubleshooting.
+
+### Fixed
+- Race on startup where SQL-MCP tried connecting before MySQL was ready (added healthcheck and `depends_on: service_healthy`).
+
 ## [1.2.1] - 2025-08-11
 
 ### Documentation

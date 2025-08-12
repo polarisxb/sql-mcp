@@ -113,11 +113,17 @@ export class MetadataService implements IMetadataService {
   }
   
   private likeToRegExp(pattern: string): RegExp {
-    let regexPattern = pattern
-      .replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
+    const raw = String(pattern ?? '')
+    const hasWildcards = /[%_]/.test(raw)
+    const escaped = raw.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
+    if (!hasWildcards) {
+      // 无通配符时，默认按“包含”匹配，提升易用性
+      return new RegExp(escaped, 'i')
+    }
+    const regexPattern = escaped
       .replace(/%/g, '.*')
       .replace(/_/g, '.')
-    return new RegExp(`^${regexPattern}$`, 'i')
+    return new RegExp(regexPattern, 'i')
   }
   
   private deduplicateRelations(relations: Relation[]): Relation[] {

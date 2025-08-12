@@ -25,10 +25,18 @@ export class SampleDataHandler {
       const actualLimit = Math.min(limit, 100)
       const data = await this.samplerService.getSampleData(tableName, actualLimit, offset, where)
       const nextOffset = offset + (Array.isArray(data.data) ? data.data.length : 0)
+      const jsonPayload: any = { tableName, limit: actualLimit, offset, nextOffset, ...data }
       return {
         content: [
           { type: 'text', text: this.formatSampleData(data) },
-          { type: 'json', json: { tableName, limit: actualLimit, offset, nextOffset, ...data } as any }
+          {
+            type: 'resource',
+            resource: {
+              uri: `memory://sample-data/${encodeURIComponent(tableName)}.json`,
+              mimeType: 'application/json',
+              text: JSON.stringify(jsonPayload)
+            }
+          }
         ]
       }
     } catch (error) {

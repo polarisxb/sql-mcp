@@ -75,6 +75,41 @@ sql-mcp --type mysql \
 
 服务将在 `http://127.0.0.1:3000/mcp` 提供 API 端点。
 
+### 3. Demo 快速体验（MySQL + 示例电商库）
+
+```bash
+# 启动（首次会自动初始化示例库 mydb）
+docker compose up -d
+
+# 健康检查（应返回 200）
+curl -i http://127.0.0.1:3001/health
+```
+
+- 说明：`mysql:8` 暴露 3306，`sql-mcp` 暴露为 `http://127.0.0.1:3001/mcp`。
+- 如端口被占用，可在 `docker-compose.yml` 中调整端口映射。
+
+### 4. 使用 DSN 启动（本地 CLI）
+
+```bash
+# 本地构建版（支持 --dsn）
+npm run build
+node dist/cli.js --transport stdio --dsn "mysql://root:root@127.0.0.1:3306/mydb"
+
+# 已发布包（npx，不支持 --dsn，用显式参数）
+npx -y @polarisxb/sql-mcp --transport stdio \
+  --type mysql --host 127.0.0.1 --port 3306 \
+  --user root --password root --database mydb
+```
+
+### 5. MCP Inspector 调试
+
+```bash
+npx -y @modelcontextprotocol/inspector
+```
+- 连接 HTTP：选择 “Connect to HTTP server”，填 `http://127.0.0.1:3001/mcp`
+- 启动本地进程（stdio）：选择 “Launch a process”，填写命令和参数（同上）
+- 常用工具：`listTables`、`getTableSchema`、`getSampleData`、`executeQuery`、`searchTables`、`searchColumns`
+
 ---
 
 ## 🔌 Cursor 集成

@@ -38,6 +38,7 @@ SQL-MCP - 数据库上下文协议服务
   sql-mcp [选项]
 
 选项:
+  --dsn <连接串>         DSN 连接字符串，如: mysql://user:pass@host:3306/dbname
   --config <文件路径>      配置文件路径
   --host <主机地址>        数据库主机
   --port <端口>           数据库端口
@@ -61,6 +62,31 @@ SQL-MCP - 数据库上下文协议服务
 `)
 }
 
+function applyDsnToEnv(dsn: string) {
+  try {
+    const url = new URL(dsn)
+    // protocol like 'mysql:' → 'mysql'
+    const protocol = url.protocol.replace(':', '').toLowerCase()
+    if (protocol) process.env.SQL_MCP_DB_TYPE = protocol
+
+    if (url.hostname) process.env.SQL_MCP_DB_HOST = url.hostname
+    if (url.port) process.env.SQL_MCP_DB_PORT = url.port
+
+    // username/password may be percent-encoded
+    if (url.username) process.env.SQL_MCP_DB_USER = decodeURIComponent(url.username)
+    if (url.password) process.env.SQL_MCP_DB_PASSWORD = decodeURIComponent(url.password)
+
+    // pathname starts with '/'
+    const dbName = url.pathname && url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname
+    if (dbName) process.env.SQL_MCP_DB_NAME = dbName
+
+    // Note: query params are currently ignored at CLI level; future mapping can be added here
+  } catch (err) {
+    console.error(`无效的 DSN: ${dsn}`)
+    process.exit(1)
+  }
+}
+
 async function main() {
   const options = parseArgs(process.argv)
 
@@ -77,6 +103,11 @@ async function main() {
       process.exit(1)
     }
     process.env.CONFIG_FILE = configPath
+  }
+
+  // 优先使用 DSN 解析填充，再允许单项参数覆盖
+  if (options.dsn) {
+    applyDsnToEnv(options.dsn)
   }
 
   // 数据库环境变量（与 ConfigLoader 约定的 SQL_MCP_* 前缀对齐）

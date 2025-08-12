@@ -47,14 +47,23 @@ export class QueryHandler {
         data: slice.map(row => Object.values(row))
       }
 
+      const jsonResource = {
+        type: 'resource' as const,
+        resource: {
+          uri: 'memory://query-result.json',
+          mimeType: 'application/json',
+          text: JSON.stringify(jsonPayload)
+        }
+      }
+
       if (outputJsonOnly) {
-        return { content: [{ type: 'json', json: jsonPayload }] }
+        return { content: [jsonResource] }
       }
 
       return {
         content: [
           { type: 'text', text: this.formatQueryResults(slice, { compact, totalRows, durationMs, nextOffset, hasMore }) },
-          { type: 'json', json: jsonPayload }
+          jsonResource
         ]
       }
     } catch (error) {
