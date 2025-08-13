@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0] - 2025-08-13
+
+### Added
+- SQL Tutor Advisor framework:
+  - PlanAnalyzer: parse EXPLAIN(JSON) → summary/risks/signals
+  - IndexAdvisor: plan + SQL shape → graded suggestions (filters/join/order) with alias mapping
+  - QueryRewriter: read-only rewrites (avoid SELECT *, keyset template, leading LIKE warning, SARGable examples)
+- Tools:
+  - `indexAdvisor(sql)`: dedicated index suggestions (text + advisor-evidence.json)
+  - `rewriteQuery(sql)`: dedicated rewrite proposals (text + advisor-evidence.json)
+  - `doctor()`: connectivity/read-only/EXPLAIN checks + duplicate/redundant index scan; CLI flag `--doctor`
+
+### Changed
+- `optimizeQuery`: unified evidence JSON (plan/analysis/suggestions/rewrites); includes duplicate/redundant index findings per table
+- README: documented new tools and evidence JSON contract
+
+### Tests
+- Unit tests for PlanAnalyzer, SqlTutorHandler (explain/optimize), QueryRewriter, server tool registry
+- Added redundancy/dedup index suggestions test
+
 ## [1.3.0] - 2025-08-12
 
 ### Added

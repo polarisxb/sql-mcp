@@ -203,4 +203,21 @@ export class MySQLConnector extends AbstractConnector {
     const [rows] = await this.query(query, params)
     return rows as any[]
   }
+
+  async getExplainPlan(query: string): Promise<any> {
+    const normalized = query.trim().toLowerCase()
+    if (!normalized.startsWith('select') && !normalized.startsWith('show')) {
+      throw new Error('Only SELECT and SHOW queries are allowed for EXPLAIN')
+    }
+    // MySQL 8+: EXPLAIN FORMAT=JSON 返回一行 JSON 文本
+    const explainSql = `EXPLAIN FORMAT=JSON ${query}`
+    const [rows] = await this.query(explainSql)
+    const first = Array.isArray(rows) ? rows[0] : undefined
+    const jsonText = first?.['EXPLAIN'] || first?.['explain'] || first?.[Object.keys(first || {})[0]]
+    try {
+      return JSON.parse(jsonText)
+    } catch {
+      return { raw: jsonText }
+    }
+  }
 } 

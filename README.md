@@ -24,6 +24,49 @@
 -   **缓存管理**: 支持手动刷新元数据缓存，确保大模型获取的信息实时准确。
 -   **安全可靠**: 内置 API Key 认证、CORS 控制、IP 限流等多重安全机制。
 
+### SQL 导师工具（新）
+- **explainQuery(sql)**: 解释查询涉及的表/连接/过滤/排序，并提示潜在风险。
+- **optimizeQuery(sql)**: 给出启发式优化建议（索引/改写/SELECT 列裁剪等）。
+- **generateExamples(tableName)**: 按表生成常见示例查询与简要讲解。
+- **fixQuery(sql, error)**: 基于错误信息提供只读等价写法或修复建议。
+- **indexAdvisor(sql)**: 专注索引建议（过滤/连接/排序/冗余）与证据 JSON。
+- **rewriteQuery(sql)**: 只读等价改写草案（例如 Keyset 分页模板、避免 SELECT*、避免前导通配符）。
+- **doctor()**: 系统自检（连通性、只读查询、EXPLAIN 可用性、重复/冗余索引统计）。
+
+示例参数（在 MCP Inspector 中选择对应工具并填入 params）:
+
+```json
+// explainQuery
+{ "sql": "SELECT p.id, p.name FROM products p JOIN categories c ON p.category_id=c.id WHERE price>50 ORDER BY p.id LIMIT 5" }
+```
+
+```json
+// optimizeQuery
+{ "sql": "SELECT * FROM orders WHERE order_date >= NOW() - INTERVAL 7 DAY ORDER BY id LIMIT 20" }
+```
+
+```json
+// indexAdvisor
+{ "sql": "SELECT p.id FROM products p JOIN categories c ON p.category_id=c.id WHERE p.price>50 ORDER BY p.id LIMIT 5" }
+```
+
+```json
+// rewriteQuery
+{ "sql": "SELECT id FROM orders ORDER BY id LIMIT 20 OFFSET 100" }
+```
+
+```json
+// fixQuery
+{ "sql": "SELECT x FROM products", "error": "Unknown column 'x' in 'field list'" }
+```
+
+```json
+// doctor（无需参数）
+{}
+```
+
+返回说明：上述工具均以 `text + resource(application/json)` 形式返回；证据 JSON 中包含执行计划/分析/建议/改写等结构化信息，便于二次处理或验证。
+
 ---
 
 ## 🚀 快速开始

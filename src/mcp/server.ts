@@ -17,8 +17,16 @@ import {
   SchemaResourceTemplate,
   SearchTablesToolSchema,
   SearchColumnsToolSchema,
-  RefreshCacheToolSchema
+  RefreshCacheToolSchema,
+  ExplainQueryToolSchema,
+  OptimizeQueryToolSchema,
+  GenerateExamplesToolSchema,
+  FixQueryToolSchema,
+  IndexAdvisorToolSchema,
+  RewriteQueryToolSchema,
+  DoctorToolSchema
 } from './definitions.js'
+import { SqlTutorHandler } from './handlers/sql-tutor.js'
 
 @Injectable()
 export class McpServerFactory {
@@ -110,7 +118,7 @@ export class McpServerFactory {
             const schema = await this.metadataService.getTableSchema(tbl, database)
             for (const col of schema.columns) {
               const candidates = [col.name, col.dataType, col.comment || '']
-              if (candidates.some(v => regex.test(String(v)))) {
+              if (candidates.some(v => regex.test(String(v)) || (!/[%_]/.test(pattern) && String(v).toLowerCase().includes(String(pattern).toLowerCase())))) {
                 rows.push(`| ${tbl} | ${col.name} | ${col.dataType} | ${col.comment || ''} |`)
               }
             }
@@ -191,6 +199,79 @@ export class McpServerFactory {
         inputSchema: ExecuteQueryToolSchema.inputSchema
       },
       async (params) => this.queryHandler.handle(params) as any
+    )
+
+    // SQL 导师工具
+    const tutor = new SqlTutorHandler(this.securityService)
+
+    server.registerTool(
+      ExplainQueryToolSchema.name,
+      { title: ExplainQueryToolSchema.title, description: ExplainQueryToolSchema.description, inputSchema: ExplainQueryToolSchema.inputSchema },
+      async (params) => tutor.explain(params) as any
+    )
+
+    server.registerTool(
+      OptimizeQueryToolSchema.name,
+      { title: OptimizeQueryToolSchema.title, description: OptimizeQueryToolSchema.description, inputSchema: OptimizeQueryToolSchema.inputSchema },
+      async (params) => tutor.optimize(params) as any
+    )
+
+    server.registerTool(
+      GenerateExamplesToolSchema.name,
+      { title: GenerateExamplesToolSchema.title, description: GenerateExamplesToolSchema.description, inputSchema: GenerateExamplesToolSchema.inputSchema },
+      async (params) => tutor.generateExamples(params) as any
+    )
+
+    server.registerTool(
+      FixQueryToolSchema.name,
+      { title: FixQueryToolSchema.title, description: FixQueryToolSchema.description, inputSchema: FixQueryToolSchema.inputSchema },
+      async (params) => tutor.fix(params) as any
+    )
+
+    // 专用：索引建议
+    server.registerTool(
+      IndexAdvisorToolSchema.name,
+      { title: IndexAdvisorToolSchema.title, description: IndexAdvisorToolSchema.description, inputSchema: IndexAdvisorToolSchema.inputSchema },
+      async ({ sql }) => {
+        this.securityService.validateReadOnlyQuery(sql)
+        const plan = await (async () => {
+          try { const connector: any = (await import('../core/di/index.js')).container.resolve((await import('../core/di/tokens.js')).DATABASE_CONNECTOR); return connector?.getExplainPlan ? await connector.getExplainPlan(sql) : {} } catch { return {} }
+        })()
+        const analysis = new (await import('../core/advisor/plan-analyzer.js')).PlanAnalyzer().analyze(plan)
+        const shape = (this as any).analyzeSqlShape ? (this as any).analyzeSqlShape(sql) : { tables:[], joins:[], filters:[], selectAll:false, joinKeys:[] }
+        const suggestions = new (await import('../core/advisor/index-advisor.js')).IndexAdvisor().advise(analysis as any, shape as any)
+        const payload = { plan, analysis, suggestions }
+        return { content: [{ type: 'text', text: `# 索引建议\n\n${suggestions.map((s: any) => `- [${s.level}] ${s.action} —— ${s.reason}`).join('\n') || '暂无建议'}` }, { type: 'resource', resource: { uri: 'memory://advisor-evidence.json', mimeType: 'application/json', text: JSON.stringify(payload) } }] }
+      }
+    )
+
+    // 专用：查询改写
+    server.registerTool(
+      RewriteQueryToolSchema.name,
+      { title: RewriteQueryToolSchema.title, description: RewriteQueryToolSchema.description, inputSchema: RewriteQueryToolSchema.inputSchema },
+      async ({ sql }) => {
+        this.securityService.validateReadOnlyQuery(sql)
+        const rewrites = new (await import('../core/advisor/query-rewriter.js')).QueryRewriter().rewrite(sql)
+        const text = ['# 查询改写', ''].concat(rewrites.flatMap((r: any) => r.sql ? [`- ${r.description}`, '```sql', r.sql, '```'] : [`- ${r.description}`])).join('\n') || '# 查询改写\n\n暂无改写建议'
+        const payload = { rewrites }
+        return { content: [{ type: 'text', text }, { type: 'resource', resource: { uri: 'memory://advisor-evidence.json', mimeType: 'application/json', text: JSON.stringify(payload) } }] }
+      }
+    )
+
+    // Doctor 自检
+    server.registerTool(
+      DoctorToolSchema.name,
+      { title: DoctorToolSchema.title, description: DoctorToolSchema.description, inputSchema: DoctorToolSchema.inputSchema },
+      async () => {
+        const { runDoctor } = await import('../tools/doctor.js')
+        const res = await runDoctor()
+        return {
+          content: [
+            { type: 'text', text: res.text },
+            { type: 'resource', resource: { uri: 'memory://doctor.json', mimeType: 'application/json', text: JSON.stringify(res.evidence) } }
+          ]
+        }
+      }
     )
   }
   

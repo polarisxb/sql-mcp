@@ -58,6 +58,7 @@ SQL-MCP - 数据库上下文协议服务
   --stdio-safe            启用 stdio 安全预设（紧凑/更严上限/禁用噪音输出）
   --compact               启用紧凑输出（减少 Markdown 体积）
   --json-only             仅输出 JSON 内容
+  --doctor                运行系统自检（连通性/只读/EXPLAIN）并退出
   --help, -h              显示帮助信息
 `)
 }
@@ -137,6 +138,15 @@ async function main() {
   if (options['stdio-safe'] === 'true') process.env.SQL_MCP_MCP_STDIO_SAFE = 'true'
   if (options['compact'] === 'true') process.env.SQL_MCP_MCP_STDIO_COMPACT = 'true'
   if (options['json-only'] === 'true') process.env.SQL_MCP_OUTPUT_JSON_ONLY = 'true'
+
+  // Doctor 自检
+  if (options.doctor === 'true') {
+    const { runDoctor } = await import('./tools/doctor.js')
+    const res = await runDoctor()
+    console.log(res.text)
+    try { console.log(JSON.stringify(res.evidence)) } catch {}
+    process.exit(0)
+  }
 
   await start()
 }

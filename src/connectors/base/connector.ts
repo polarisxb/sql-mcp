@@ -56,6 +56,9 @@ export abstract class AbstractConnector implements DatabaseConnector {
   
   /** 执行只读查询 */
   abstract executeReadQuery(query: string, params?: any[]): Promise<any[]>
+
+  /** 获取只读执行计划 */
+  abstract getExplainPlan(query: string): Promise<any>
   
   /** 验证连接配置 */
   protected validateConfig(config: ConnectionConfig): void {

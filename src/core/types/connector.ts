@@ -92,6 +92,14 @@ export interface DatabaseConnector {
    * @returns {Promise<any[]>} 查询结果集
    */
   executeReadQuery(query: string, params?: any[]): Promise<any[]>;
+
+  /**
+   * 获取查询的执行计划（只读）。
+   * 默认使用数据库原生 EXPLAIN（例如 MySQL 的 EXPLAIN FORMAT=JSON）。
+   * @param query - 需要分析的只读 SQL（SELECT/SHOW）
+   * @returns {Promise<any>} 执行计划的结构化表示
+   */
+  getExplainPlan(query: string): Promise<any>;
 }
 
 /**

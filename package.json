@@ -1,6 +1,6 @@
 {
   "name": "@polarisxb/sql-mcp",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "MySQL-backed Model Context Protocol (MCP) server for database metadata, sampling and read-only queries.",
   "type": "module",
   "main": "dist/index.js",
